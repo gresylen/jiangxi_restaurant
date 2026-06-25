@@ -80,6 +80,7 @@ main {
     font-size: 16px;
     font-weight: bold;
     transition: all 0.2s;
+    cursor: pointer;
 }
 
 .table-selector button.active {
@@ -137,17 +138,9 @@ main {
     font-weight: bold;
 }
 
-.dish-tag.荤菜 {
-    background-color: #f44336;
-}
-
-.dish-tag.素菜 {
-    background-color: #4CAF50;
-}
-
-.dish-tag.特色 {
-    background-color: #FF9800;
-}
+.dish-tag.荤菜 { background-color: #f44336; }
+.dish-tag.素菜 { background-color: #4CAF50; }
+.dish-tag.特色 { background-color: #FF9800; }
 
 .dish-info {
     padding: 10px;
@@ -297,23 +290,83 @@ main {
     font-size: 24px;
 }
 
-.submit-btn {
+.submit-btn, .manual-btn {
     width: 100%;
     padding: 12px;
     border: none;
     border-radius: 8px;
-    background-color: #4CAF50;
-    color: white;
     font-size: 16px;
     font-weight: bold;
     cursor: pointer;
 }
 
+.submit-btn {
+    background-color: #4CAF50;
+    color: white;
+}
 .submit-btn:hover {
     background-color: #43a047;
 }
 
-/* 后厨页面 */
+.manual-btn {
+    background-color: #FF9800;
+    color: white;
+}
+.manual-btn:hover {
+    background-color: #FB8C00;
+}
+
+/* 手动加菜弹窗 */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+.modal-content {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 400px;
+}
+.modal-content input {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+.modal-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+.modal-buttons button {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+}
+.modal-buttons button:first-child {
+    background-color: #4CAF50;
+    color: white;
+}
+.modal-buttons button:last-child {
+    background-color: #f44336;
+    color: white;
+}
+
+/* 后厨页面 - 紧凑横向布局 */
 .kitchen-layout {
     display: flex;
     gap: 15px;
@@ -330,7 +383,6 @@ main {
 .pending-section {
     background-color: #fff8e1;
 }
-
 .completed-section {
     background-color: #e8f5e9;
 }
@@ -339,24 +391,16 @@ main {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 15px;
+    padding: 12px 15px;
     border-bottom: 1px solid rgba(0,0,0,0.1);
 }
-
-.section-icon {
-    font-size: 18px;
-}
-
-.section-title {
-    font-weight: bold;
-    color: #333;
-}
-
+.section-icon { font-size: 18px; }
+.section-title { font-weight: bold; color: #333; }
 .section-count {
     margin-left: auto;
     background: #4CAF50;
     color: white;
-    padding: 4px 12px;
+    padding: 2px 12px;
     border-radius: 20px;
     font-size: 14px;
     font-weight: bold;
@@ -365,96 +409,120 @@ main {
 .kitchen-items {
     flex: 1;
     overflow-y: auto;
-    padding: 15px;
+    padding: 8px;
 }
 
 .kitchen-card {
     background: white;
     border-radius: 8px;
-    overflow: hidden;
-    margin-bottom: 12px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    margin-bottom: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    gap: 12px;
 }
 
 .kitchen-card.completed {
-    opacity: 0.8;
+    opacity: 0.7;
+}
+
+.kitchen-card img {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+    border-radius: 6px;
+}
+
+.no-image {
+    width: 50px;
+    height: 50px;
+    background-color: #eee;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    color: #999;
 }
 
 .card-header {
     display: flex;
-    justify-content: space-between;
-    padding: 8px 12px;
-    background: #f5f5f5;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    min-width: 60px;
 }
 
 .table-badge {
     background-color: #FF9800;
     color: white;
-    padding: 4px 10px;
-    border-radius: 4px;
-    font-size: 14px;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 13px;
     font-weight: bold;
+    white-space: nowrap;
 }
 
 .qty-badge {
-    background-color: #f44336;
+    background-color: #e67e22;
     color: white;
     padding: 4px 10px;
-    border-radius: 4px;
-    font-size: 14px;
+    border-radius: 30px;
+    font-size: 15px;
     font-weight: bold;
-}
-
-.kitchen-card img {
-    width: 100%;
-    height: 150px;
-    object-fit: cover;
+    text-align: center;
+    min-width: 45px;
+    display: inline-block;
 }
 
 .card-body {
-    padding: 10px 12px;
+    flex: 1;
+    min-width: 0;
 }
 
 .card-body .dish-name {
     display: block;
-    font-size: 16px;
+    font-size: 15px;
     font-weight: bold;
     color: #333;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .card-body .dish-remark {
     display: block;
-    font-size: 13px;
+    font-size: 12px;
     color: #666;
-    margin-top: 4px;
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.complete-btn, .redo-btn {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    white-space: nowrap;
 }
 
 .complete-btn {
-    width: 100%;
-    padding: 10px;
-    border: none;
     background-color: #4CAF50;
     color: white;
-    font-size: 14px;
-    font-weight: bold;
-    cursor: pointer;
 }
-
 .complete-btn:hover {
     background-color: #43a047;
 }
 
 .redo-btn {
-    width: 100%;
-    padding: 10px;
-    border: none;
     background-color: #9E9E9E;
     color: white;
-    font-size: 14px;
-    font-weight: bold;
-    cursor: pointer;
 }
-
 .redo-btn:hover {
     background-color: #757575;
 }
@@ -586,7 +654,6 @@ main {
     cursor: pointer;
     margin-top: auto;
 }
-
 .checkout-btn:hover {
     background-color: #43a047;
 }
@@ -601,6 +668,9 @@ main {
     font-size: 14px;
     cursor: pointer;
     margin-top: 10px;
+}
+.export-btn:hover {
+    background-color: #f5f5f5;
 }
 
 /* 管理页面 */
@@ -694,6 +764,9 @@ main {
     font-size: 13px;
     cursor: pointer;
 }
+.save-btn:hover {
+    background-color: #43a047;
+}
 
 /* 添加菜品表单 */
 .add-dish-form {
@@ -731,12 +804,14 @@ main {
     font-weight: bold;
     cursor: pointer;
 }
+.add-btn:hover {
+    background-color: #43a047;
+}
 
 /* 数据备份 */
 .backup-section {
     text-align: center;
 }
-
 .backup-btn {
     padding: 15px 40px;
     border: none;
@@ -747,7 +822,9 @@ main {
     font-weight: bold;
     cursor: pointer;
 }
-
+.backup-btn:hover {
+    background-color: #0b7dda;
+}
 .backup-info {
     margin-top: 20px;
     color: #666;
@@ -854,12 +931,10 @@ main {
     height: 180px;
     position: relative;
 }
-
 .line-chart svg {
     width: 100%;
     height: 150px;
 }
-
 .chart-labels {
     display: flex;
     justify-content: space-between;
@@ -907,20 +982,17 @@ main {
     font-size: 12px;
 }
 
-/* 响应式设计 */
+/* 响应式 */
 @media (max-width: 768px) {
     .order-layout, .kitchen-layout, .checkout-layout {
         flex-direction: column;
     }
-    
     .dishes-grid {
         grid-template-columns: repeat(2, 1fr);
     }
-    
     .stats-grid {
         grid-template-columns: repeat(2, 1fr);
     }
-    
     .charts-row {
         grid-template-columns: 1fr;
     }

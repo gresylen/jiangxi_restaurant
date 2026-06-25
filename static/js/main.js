@@ -1,5 +1,5 @@
 new Vue({
-    el: 'body',
+    el: '#app',
     data: {
         dishes: [],
         orders: [],
@@ -14,15 +14,19 @@ new Vue({
         newDishCategory: '荤菜',
         currentPage: 'order',
         lastRefreshTime: '',
-        
-        // 统计数据
         todayOrders: 0,
         todayRevenue: 0,
         hotDish: '-',
         hotDishes: [],
         last7Days: [],
         chartPoints: [],
-        linePath: ''
+        linePath: '',
+        showManualModal: false,
+        manualDishName: '',
+        manualDishPrice: '',
+        manualDishRemark: '',
+        manualDishQuantity: 1,
+        selectedImageFile: null
     },
     computed: {
         pendingOrders() {
@@ -37,18 +41,14 @@ new Vue({
         pendingCount() {
             let count = 0;
             this.pendingOrders.forEach(order => {
-                order.items.forEach(item => {
-                    if (item.status === '待做') count++;
-                });
+                order.items.forEach(item => { if (item.status === '待做') count++; });
             });
             return count;
         },
         completedCount() {
             let count = 0;
             this.completedOrders.forEach(order => {
-                order.items.forEach(item => {
-                    if (item.status === '已完成') count++;
-                });
+                order.items.forEach(item => { if (item.status === '已完成') count++; });
             });
             return count;
         }
@@ -58,7 +58,6 @@ new Vue({
         this.loadOrders();
         this.updateRefreshTime();
         this.generateChartData();
-        
         setInterval(() => {
             this.loadOrders();
             this.updateRefreshTime();
@@ -68,23 +67,20 @@ new Vue({
         loadDishes() {
             fetch('/api/dishes')
                 .then(res => res.json())
-                .then(data => {
-                    this.dishes = data.dishes;
-                });
+                .then(data => { this.dishes = data.dishes; });
         },
         loadOrders() {
             fetch('/api/orders')
                 .then(res => res.json())
                 .then(data => {
                     this.orders = data.orders;
-                    const currentOrder = this.orders.find(o => o.table_id === this.currentTable && o.status === '未结账');
-                    if (currentOrder) {
-                        this.currentOrderItems = [...currentOrder.items];
-                    } else {
-                        this.currentOrderItems = [];
-                    }
                     this.updateStatistics();
+                    // 注意：不在这里刷新 currentOrderItems，避免未提交的菜被覆盖
                 });
+        },
+        refreshCurrentOrderItems() {
+            const currentOrder = this.orders.find(o => o.table_id === this.currentTable && o.status === '未结账');
+            this.currentOrderItems = currentOrder ? [...currentOrder.items] : [];
         },
         updateRefreshTime() {
             const now = new Date();
@@ -98,34 +94,24 @@ new Vue({
                 date.setDate(date.getDate() - i);
                 this.last7Days.push(`${date.getMonth() + 1}/${date.getDate()}`);
             }
-            
             const mockData = [1200, 1600, 800, 1800, 2000, 1700, 2400];
             this.chartPoints = mockData.map((value, index) => ({
                 x: (index * 300) / 6 + 20,
                 y: 140 - (value / 2400) * 120
             }));
-            
-            this.linePath = this.chartPoints.map((p, i) => 
-                `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`
-            ).join(' ');
+            this.linePath = this.chartPoints.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
         },
         updateStatistics() {
             const today = new Date().toISOString().split('T')[0];
             const todayOrdersList = this.orders.filter(o => o.create_time.includes(today) && o.status === '已结账');
-            
             this.todayOrders = todayOrdersList.length;
             this.todayRevenue = todayOrdersList.reduce((sum, o) => sum + o.actual_payment, 0);
-            
             const dishCount = {};
             todayOrdersList.forEach(order => {
-                order.items.forEach(item => {
-                    dishCount[item.dish_name] = (dishCount[item.dish_name] || 0) + item.quantity;
-                });
+                order.items.forEach(item => { dishCount[item.dish_name] = (dishCount[item.dish_name] || 0) + item.quantity; });
             });
-            
             const sortedDishes = Object.entries(dishCount).sort((a, b) => b[1] - a[1]);
             this.hotDish = sortedDishes.length > 0 ? sortedDishes[0][0] : '-';
-            
             this.hotDishes = sortedDishes.slice(0, 6).map(([name, quantity]) => ({
                 dish_name: name,
                 quantity: quantity,
@@ -134,19 +120,11 @@ new Vue({
         },
         switchPage(page) {
             this.currentPage = page;
-            document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            document.getElementById('nav-' + page).classList.add('active');
-            document.getElementById(page + '-page').classList.add('active');
         },
         selectTable(table) {
             this.currentTable = table;
-            const currentOrder = this.orders.find(o => o.table_id === table && o.status === '未结账');
-            if (currentOrder) {
-                this.currentOrderItems = [...currentOrder.items];
-            } else {
-                this.currentOrderItems = [];
-            }
+            this.currentOrderItems = [];
+            this.refreshCurrentOrderItems();
         },
         addToOrder(dish) {
             const existingItem = this.currentOrderItems.find(item => item.dish_id === dish.dish_id);
@@ -165,19 +143,35 @@ new Vue({
                 });
             }
         },
+        openManualAdd() {
+            this.showManualModal = true;
+            this.manualDishName = '';
+            this.manualDishPrice = '';
+            this.manualDishRemark = '';
+            this.manualDishQuantity = 1;
+        },
+        addManualDish() {
+            if (!this.manualDishName || !this.manualDishPrice) {
+                alert('请填写菜品名称和价格');
+                return;
+            }
+            this.currentOrderItems.push({
+                item_id: Date.now(),
+                dish_id: null,
+                dish_name: this.manualDishName,
+                price: parseFloat(this.manualDishPrice),
+                quantity: parseInt(this.manualDishQuantity) || 1,
+                remark: this.manualDishRemark,
+                status: '待做',
+                image_path: ''   // 空字符串，后端会补成默认图片
+            });
+            this.showManualModal = false;
+        },
         removeFromOrder(index) {
-            if (confirm('确定删除该菜品？')) {
-                this.currentOrderItems.splice(index, 1);
-            }
+            if (confirm('确定删除该菜品？')) this.currentOrderItems.splice(index, 1);
         },
-        increaseQty(index) {
-            this.currentOrderItems[index].quantity++;
-        },
-        decreaseQty(index) {
-            if (this.currentOrderItems[index].quantity > 1) {
-                this.currentOrderItems[index].quantity--;
-            }
-        },
+        increaseQty(index) { this.currentOrderItems[index].quantity++; },
+        decreaseQty(index) { if (this.currentOrderItems[index].quantity > 1) this.currentOrderItems[index].quantity--; },
         getTotalAmount() {
             return this.currentOrderItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
         },
@@ -186,18 +180,25 @@ new Vue({
                 alert('请先添加菜品');
                 return;
             }
-            
             fetch('/api/orders', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    table_id: this.currentTable,
-                    items: this.currentOrderItems
-                })
-            }).then(res => res.json())
+                body: JSON.stringify({ table_id: this.currentTable, items: this.currentOrderItems })
+            })
+            .then(res => res.json())
             .then(data => {
-                alert('订单提交成功');
-                this.currentOrderItems = [];
+                if (data.error) {
+                    alert('提交失败: ' + data.error);
+                } else {
+                    alert('订单提交成功');
+                    this.currentOrderItems = [];
+                    this.loadOrders();
+                    this.refreshCurrentOrderItems();
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('网络错误，请查看控制台');
             });
         },
         markComplete(orderId, itemId) {
@@ -205,18 +206,14 @@ new Vue({
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: '已完成' })
-            }).then(() => {
-                this.loadOrders();
-            });
+            }).then(() => this.loadOrders());
         },
         markPending(orderId, itemId) {
             fetch(`/api/orders/${orderId}/items/${itemId}/status`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: '待做' })
-            }).then(() => {
-                this.loadOrders();
-            });
+            }).then(() => this.loadOrders());
         },
         selectCheckoutTable(table) {
             this.checkoutTable = table;
@@ -232,55 +229,51 @@ new Vue({
                 alert('请输入实付金额');
                 return;
             }
-            
             fetch(`/api/orders/${this.currentCheckoutOrder.order_id}/checkout`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    actual_payment: parseFloat(this.actualPayment),
-                    invoice_info: this.invoiceInfo
-                })
+                body: JSON.stringify({ actual_payment: parseFloat(this.actualPayment), invoice_info: this.invoiceInfo })
             }).then(() => {
                 alert('结账成功');
                 this.loadOrders();
                 this.actualPayment = '';
                 this.invoiceInfo = '';
+                if (this.checkoutTable === this.currentTable) {
+                    this.currentOrderItems = [];
+                }
             });
         },
-        exportOrders() {
-            window.open('/api/export');
-        },
+        exportOrders() { window.open('/api/export'); },
         updatePrice(dish) {
             fetch(`/api/dishes/${dish.dish_id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ price: parseFloat(dish.price) })
-            }).then(() => {
-                alert('价格更新成功');
-            });
+            }).then(() => alert('价格更新成功'));
         },
-        addDish() {
+        onImageSelected(event) {
+            this.selectedImageFile = event.target.files[0];
+        },
+        addDishWithImage() {
             if (!this.newDishName || !this.newDishPrice) {
                 alert('请输入菜品名称和价格');
                 return;
             }
-            
             const formData = new FormData();
             formData.append('dish_name', this.newDishName);
             formData.append('price', this.newDishPrice);
-            
-            fetch('/api/dishes', {
-                method: 'POST',
-                body: formData
-            }).then(() => {
-                alert('菜品添加成功');
-                this.newDishName = '';
-                this.newDishPrice = '';
-                this.loadDishes();
-            });
+            formData.append('category', this.newDishCategory);
+            if (this.selectedImageFile) formData.append('image', this.selectedImageFile);
+            fetch('/api/dishes', { method: 'POST', body: formData })
+                .then(() => {
+                    alert('菜品添加成功');
+                    this.newDishName = '';
+                    this.newDishPrice = '';
+                    this.selectedImageFile = null;
+                    this.loadDishes();
+                })
+                .catch(err => alert('添加失败: ' + err));
         },
-        backupData() {
-            alert('备份功能开发中...');
-        }
+        backupData() { alert('备份功能开发中...'); }
     }
 });
